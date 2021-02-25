@@ -1,0 +1,171 @@
+- include: centos7-setup.yaml
+  when: ansible_distribution == 'CentOS' and ansible_distribution_major_version == '7'
+
+- include: centos8-setup.yaml
+  when: ansible_distribution == 'CentOS' and ansible_distribution_major_version == '8'
+
+- include: debian-ubuntu-setup.yaml
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+
+- name: ensure sshd config
+  copy:
+    src: sshd_config
+    dest: /etc/ssh/sshd_config
+
+- name: Stop and disable service autofs
+  service:
+    name: autofs
+    state: stopped
+    enabled: no
+  failed_when: false
+
+- name: Remove unsafe files
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - /etc/hosts.equiv
+    - ~/.rhosts
+
+- name: disable telnet
+  lineinfile:
+    path: "{{ item }}"
+    regexp: "^disable ="
+    line: "disable = yes"
+  with_items:
+    - /etc/xinetd.d/telnet
+  failed_when: false
+
+- name: ensure motd config
+  copy:
+    src: motd
+    dest: /etc/motd
+
+- name: ensure system-auth file
+  copy:
+    src: system-auth
+    dest: /etc/pam.d/system-auth
+
+- name: ensure useradd file
+  copy:
+    src: useradd
+    dest: /etc/default/useradd
+
+- name: ensure sudoers params
+  lineinfile:
+    path: /etc/sudoers
+    line: "{{ item }}"
+  with_items:
+    - 'Defaults use_pty'
+    - 'Defaults logfile="/var/log/sudo.log"'
+    - '%group_name ALL=(root) /sbin/service httpd start, /sbin/service httpd stop, /sbin/service httpd restart'
+
+- name: Restricting access rights to SU
+  lineinfile:
+    path: /etc/pam.d/su
+    line: "{{ item }}"
+  with_items:
+    - 'auth required pam_wheel.so deny group=nosu use_uid'
+
+- name: ensure login.defs file
+  copy:
+    src: login.defs
+    dest: /etc/login.defs
+
+- name: ensure blacklist.conf file
+  copy:
+    src: blacklist.conf
+    dest: /etc/modprobe.d/blacklist.conf
+
+- name: ensure correct permissions on system files
+  file:
+    path: "{{ item }}"
+    owner: root
+    group: root
+    mode: '0644'
+  with_items:
+  - /etc/passwd
+  - /etc/passwd-
+  - /etc/group
+  - /etc/group-
+
+- name: ensure correct permissions on system files
+  file:
+    dest: "{{ item }}"
+    owner: root
+    group: root
+    mode: '0600'
+  with_items:
+  - /etc/shadow
+  - /etc/shadow-
+  - /etc/gshadow
+  - /etc/gshadow-
+  - /etc/grub.cfg
+  - /boot/grub2/grubenv
+  - /boot/grub2/grub.cfg
+  - /etc/ssh/sshd_config
+  - /etc/cron.d
+  - /etc/crontab
+  failed_when: false
+
+- name: ensure correct permissions on system files
+  file:
+    dest: "{{ item }}"
+    owner: root
+    group: root
+    mode: '0700'
+  with_items:
+  - /etc/cron.hourly
+  - /etc/cron.daily
+  - /etc/cron.weekly
+  - /etc/cron.monthly
+  failed_when: false
+
+- name: Remove at and cron files
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - /etc/cron.deny
+    - /etc/at.deny
+
+- name: Create a file if it does not exist
+  copy:
+    content: ""
+    dest: "{{ item }}"
+    force: no
+    owner: root
+    group: root
+    mode: og-rwx
+  with_items:
+  - /etc/cron.allow
+  - /etc/at.allow
+
+- name: Configuring access to private and public SSH keys.
+  shell: "{{ item }}"
+  with_items:
+  - "find /etc/ssh -xdev -type f -name 'ssh_host_*_key' -exec stat {};"
+  - "find /etc/ssh -xdev -type f -name 'ssh_host_*_key' -exec chown root:root {}; && find /etc/ssh -xdev -type f -name 'ssh_host_*_key' -exec chmod 0600 {};"
+  - "find /etc/ssh -xdev -type f -name 'ssh_host_*_key.pub' -exec chmod 0644 {}; && find /etc/ssh -xdev -type f -name 'ssh_host_*_key.pub' -exec chown root:root {};"
+  failed_when: false
+
+- name: Configuring access restrictions to log files in the /var/logs directory
+  shell: "{{ item }}"
+  with_items:
+  - 'find /var/log -type f -perm /037 -ls -o -type d -perm /026 -ls'
+  - 'find /var/log -type f -exec chmod g-wx,o-rwx "{}" + -o -type d -exec chmod g-w,o-rwx "{}" +'
+  failed_when: false
+
+- name: Search for users with insecure settings
+  shell: "{{ item }}"
+  with_items:
+  - "awk -F: '($2 == \"\" ) { print $1 \" does not have a password \"}' /etc/shadow"
+  - "awk -F: '($3 == 0) { print $1 }' /etc/passwd"
+  failed_when: false
+
+- name: ensure network-stack.conf file
+  copy:
+    src: network-stack.conf
+    dest: /etc/sysctl.d/network-stack.conf
+

@@ -1,0 +1,6 @@
+- name: ensure prepare
+  become: true
+  hosts: all
+  roles:
+  - prepare
+  - system

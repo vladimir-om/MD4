@@ -1,0 +1,47 @@
+Vagrant.configure("2") do |config|
+  config.vm.base_mac = nil
+  config.vm.synced_folder ".", "/vagrant", disabled: true
+
+  config.vm.provider "virtualbox" do |vb|
+    vb.gui = false
+    vb.memory = "1024"
+    vb.cpus = 1
+    vb.linked_clone = true
+  end
+
+  N = 1
+  (1..N).each do |machine_id|
+    config.vm.define "vmb-test-c#{machine_id}" do |n|
+      n.vm.hostname = "vmb-test-c#{machine_id}"
+      n.vm.network "private_network", ip: "10.10.10.#{10+machine_id}"
+      n.vm.box = "generic/centos7"
+
+      if machine_id == N
+        n.vm.provision :ansible do |ansible|
+          ansible.limit = "all"
+          ansible.playbook = "site.yaml"
+#          ansible.raw_arguments = [ "-D" ]
+          ansible.raw_arguments = [ "-D", "--tags", "hardening" ]
+        end
+      end
+    end
+  end
+
+  N = 1
+  (1..N).each do |machine_id|
+    config.vm.define "vmb-test-d#{machine_id}" do |n|
+      n.vm.hostname = "vmb-test-d#{machine_id}"
+      n.vm.network "private_network", ip: "10.11.11.#{10+machine_id}"
+      n.vm.box = "debian/buster64"
+
+      if machine_id == N
+        n.vm.provision :ansible do |ansible|
+          ansible.limit = "all"
+          ansible.playbook = "site.yaml"
+#          ansible.raw_arguments = [ "-D" ]
+          ansible.raw_arguments = [ "-D", "--tags", "hardening" ]
+        end
+      end
+    end
+  end
+end

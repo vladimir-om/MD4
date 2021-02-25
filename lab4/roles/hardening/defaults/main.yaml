@@ -1,0 +1,31 @@
+progs_to_delete:
+- rlogin
+- rexec
+- rsh
+- tftp
+- xinetd
+- vsftpd
+- rsh
+- ypserv
+- talk
+- talk-server
+- xorg-x11-server-common
+- openldap-servers
+- avahi-daemon
+- snmpd
+- named
+- smb
+- httpd
+- nginx
+- rhnsd
+- squid
+- dhcpd
+- dovecot
+- rpcbind
+- nfs
+- cups
+
+
+
+
+

@@ -1,0 +1,9 @@
+- name: update-c7-grub
+  shell: grub2-mkconfig -o /boot/grub2/grub.cfg
+
+- name: update-d-grub
+  shell: grub-mkconfig -o /boot/grub/grub.cfg
+
+
+
+

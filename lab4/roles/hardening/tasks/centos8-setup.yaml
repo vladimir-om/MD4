@@ -1,0 +1,48 @@
+- name: set up signature verification for packages
+  lineinfile:
+    path: "{{ item }}"
+    regexp: "^gpgcheck="
+    line: "gpgcheck=1"
+  with_items:
+    - /etc/dnf/dnf.conf
+  failed_when: false
+
+- name: Install dnf-automatic
+  yum:
+    name: dnf-automatic
+    state: latest
+    update_cache: yes
+
+- name: set up security updates
+  block:
+    - name: set up update_type
+      lineinfile:
+        path: "{{ item }}"
+        regexp: "^update_type ="
+        line: "update_type = security"
+      with_items:
+        - /etc/dnf/automatic.conf
+
+    - name: set up update_type
+      lineinfile:
+        path: "{{ item }}"
+        regexp: "^emit_via ="
+        line: "emit_via = motd"
+      with_items:
+        - /etc/dnf/automatic.conf
+
+    - name: Starting and Enabling dnf-automatic service
+      service:
+        name: dnf-automatic.timer
+        state: started
+        enabled: yes
+
+
+- name: delete old unsecure progs
+  yum:
+    name: "{{ progs_to_delete }}"
+    state: absent
+
+
+
+

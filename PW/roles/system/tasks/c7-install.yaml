@@ -1,0 +1,20 @@
+- name: Stopping all containers
+  shell: docker stop $(docker ps -a -q) || /usr/bin/true
+
+- name: Removing all containers
+  shell: docker rm $(docker ps -a -q) || /usr/bin/true
+
+- name: Delete all images
+  shell: docker rmi $(docker images -q) || /usr/bin/true
+
+- name: Create a container =bwapp=
+  shell: docker run -p 80:80 -d --name bwapp raesene/bwapp
+
+- name: Sleep for 30 seconds and continue with play
+  wait_for:
+    timeout: 30
+
+- name: Setup a container =bwapp=
+  uri:
+    url: http://{{ polygon_base_ip }}/install.php?install=yes
+    return_content: no

@@ -1,0 +1,33 @@
+Vagrant.configure("2") do |config|
+  config.vm.base_mac = nil
+  config.vm.synced_folder ".", "/vagrant", disabled: true
+
+  config.vm.provider "virtualbox" do |vb|
+    vb.gui = false
+    vb.memory = "2048"
+    vb.cpus = 2
+    vb.linked_clone = true
+  end
+
+  N = 1
+  (1..N).each do |machine_id|
+    config.vm.define "c7-polygon-#{machine_id}" do |n|
+      n.vm.hostname = "c7-polygon-#{machine_id}"
+      n.vm.network "private_network", ip: "10.2.2.#{10+machine_id}"
+      n.vm.box = "generic/centos7"
+
+      if machine_id == N
+        n.vm.provision :ansible do |ansible|
+          ansible.limit = "all"
+          ansible.playbook = "site.yaml"
+          ansible.groups = {
+            "all:vars" => { "polygon_default_interface" => "eth1",
+                            "polygon_base_ip" => "{{ hostvars[inventory_hostname]['ansible_'+polygon_default_interface]['ipv4']['address'] }}"
+            }
+          }
+          ansible.raw_arguments = [ "-D" ]
+        end
+      end
+    end
+  end
+end

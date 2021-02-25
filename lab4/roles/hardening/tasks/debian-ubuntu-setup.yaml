@@ -1,0 +1,33 @@
+- name: raw install python3
+  raw: apt -y install python3
+  changed_when: false
+
+- name: Set timezone to Europe/Moscow
+  community.general.timezone:
+    name: Europe/Moscow
+
+- name: install packages
+  apt:
+    name:
+      - fail2ban
+      - ntp
+- name: ensure grub params
+  lineinfile:
+    path: /etc/default/grub
+    line: "{{ item }}"
+  with_items:
+    - GRUB_CMDLINE_LINUX="ipv6.disable=1"
+    - GRUB_CMDLINE_LINUX="audit=1"
+    - GRUB_CMDLINE_LINUX="audit_backlog_limit=8192"
+  notify: update-d-grub
+
+- name: delete old unsecure progs
+  apt:
+    name: "{{ progs_to_delete }}"
+    state: absent
+
+- name: security updates of packages on the system
+  shell: unattended-upgrade --dry-run -d
+  failed_when: false
+
+
